@@ -10,7 +10,7 @@ def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     # What image set we are parsing.
-    parser.add_argument('--set_number', default=3)
+    parser.add_argument('--set_number', default=1)
     # What percentage of bounding box overlap qualifies two
     # objects in a scene graph as duplicates.
     parser.add_argument('--overlap_threshold', default=0.25)
