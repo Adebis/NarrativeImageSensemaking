@@ -117,7 +117,10 @@ class Visualizer:
         output_file_name = (const.data_directory + 'outputs/' +
                             'set_' + str(self.args.set_number) + '/' +
                             'graph-visualization.html')
-        output_network.show(output_file_name)
+        # Write the html file
+        output_network.write_html(output_file_name)
+        
+        #output_network.show(output_file_name)
 
         return
     # end visualize
