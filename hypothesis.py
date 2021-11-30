@@ -254,11 +254,11 @@ class Hypothesis:
         return self.evidence_score
     # Add to this hypothesis' evidence_score.
     def add_to_evidence_score(self, evidence_score_in):
-        self.evidence_score += evidence_score
+        self.evidence_score += evidence_score_in
         return
     # Set this hypothesis' evidence_score.
-    def set_evidence_score(self, evidence_score):
-        self.evidence_score = evidence_score
+    def set_evidence_score(self, evidence_score_in):
+        self.evidence_score = evidence_score_in
         return
     # Sum the scores of all this hypothesis' evidence
     # and set its evidence score to the sum.
