@@ -1,6 +1,6 @@
 import json
 
-from knowledge_graph import KnowledgeGraphNode, KnowledgeGraphEdge, NodeFactory
+from knowledge_graph import  KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, NodeFactory
 from constants import Constants as const
 
 # Class to read external input files
@@ -35,17 +35,17 @@ class InputReader:
         
         image_index_to_id = json.load(open(image_index_to_id_path, 'r'))
 
-        knowledge_graph = dict()
+        kg = KnowledgeGraph()
         # Read in each image's scene graph and add them to
         # the knowledge graph.
         for image_index, image_id in image_index_to_id.items():
             scene_graph = self.read_scene_graph_json(image_index,
                                                      image_id,
                                                      set_directory)
-            knowledge_graph.update(scene_graph)
+            kg.nodes.update(scene_graph)
         # end for
 
-        return knowledge_graph
+        return kg
 
     # end read_scene_graphs
         

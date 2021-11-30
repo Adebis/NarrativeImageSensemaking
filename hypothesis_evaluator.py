@@ -5,7 +5,7 @@ import networkx as nx
 
 from scipy import spatial
 
-from knowledge_graph import KnowledgeGraphNode, KnowledgeGraphEdge, NodeFactory
+from knowledge_graph import KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, NodeFactory
 from hypothesis import Hypothesis, Evidence
 from constants import Constants as const
 
@@ -188,14 +188,14 @@ class HypothesisEvaluator:
         # The node will be its ID.
         # Note: Graph() makes an undirected graph.
         nx_graph = nx.Graph()
-        for node_id, kg_node in kg_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             # Skip concept nodes
             if kg_node.node_type == 'concept':
                 continue
             nx_graph.add_node(node_id)
         # end for
         # Next, add the edges from the knowledge graph.
-        for node_id, kg_node in kg_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             # Only go off of outgoing edges. Duplicates will
             # be ignored, and since the graph is undirected we
             # don't have to worry about directions.
@@ -405,7 +405,7 @@ class HypothesisEvaluator:
         sum_average_similarity = 0
         node_count = 0
         # Go through each node in the knowledge graph
-        for node_id, node in kg_in.items():
+        for node_id, node in kg_in.nodes.items():
             # Only count the average similarity of concept nodes that
             # are formally part of the knowledge graph.
             if not (node.node_type == 'concept' and
@@ -426,7 +426,7 @@ class HypothesisEvaluator:
     def average_similarity(self, node_in, kg_in):
         count = 0
         sum_similarity = 0
-        for node_id, node in kg_in.items():
+        for node_id, node in kg_in.nodes.items():
             # Don't compare the node to itself
             if node_id == node_in.node_id:
                 continue
@@ -476,7 +476,7 @@ class HypothesisEvaluator:
         # Estimate density contribution.
         # Get the base density of the knowledge graph without any
         # hypotheses.
-        base_node_count = len(kg_in)
+        base_node_count = len(kg_in.nodes)
         base_edge_count = self.graph_edge_count(kg_in)
         base_density = self.calculate_density(base_node_count, base_edge_count)
 
@@ -540,7 +540,7 @@ class HypothesisEvaluator:
     def graph_edge_count(self, kg_in):
         edge_count = 0
         # Go through each node in the knowledge graph.
-        for node_id, node in kg_in.items():
+        for node_id, node in kg_in.nodes.items():
             # Get every node's edge count.
             edge_count += node.get_edge_count()
         # end for

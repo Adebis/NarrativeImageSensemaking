@@ -1,7 +1,7 @@
 import networkx as nx
 from pyvis.network import Network
 
-from knowledge_graph import KnowledgeGraphNode, KnowledgeGraphEdge
+from knowledge_graph import KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge
 from constants import Constants as const
 
 # A class for visualizing sensemaking results.
@@ -22,7 +22,7 @@ class Visualizer:
     # Visualize a given knowledge graph with
     # the given sets of hypotheses. 
     def visualize(self,
-                  knowledge_graph_in,
+                  kg_in,
                   all_hypotheses,
                   hypothesis_sets_in):
 
@@ -31,7 +31,7 @@ class Visualizer:
         # Make sure it's a directed graph.
         network_graph = nx.DiGraph()
         # Add all nodes that have been observed.
-        for node_id, node in knowledge_graph_in.items():
+        for node_id, node in kg_in.nodes.items():
             if (node.node_type == 'object'
                 or node.node_type == 'predicate'
                 or node.node_type == 'action'):
@@ -41,7 +41,7 @@ class Visualizer:
         # end for
 
         # Add all edges between observed nodes.
-        for node_id, node in knowledge_graph_in.items():
+        for node_id, node in kg_in.nodes.items():
             if node_id in nx.nodes(network_graph):
                 #print('node ' + str(node_id) + ' in graph')
                 # Check only outgoing edges.
