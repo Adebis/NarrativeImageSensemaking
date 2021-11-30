@@ -1,6 +1,8 @@
 import sqlite3
 from sqlite3 import Error
 
+from constants import Constants as const
+
 class DatabaseManager:
 
     # The file path to the concepts database
@@ -13,7 +15,7 @@ class DatabaseManager:
         # Change this to True for debugging
         self.verbose = False
         if db_path == None:
-            self.concepts_db_file_path = 'data/concept_data.db'
+            self.concepts_db_file_path = const.data_directory + 'concept_data.db'
         else:
             self.concepts_db_file_path = db_path
     # end __init__

@@ -83,7 +83,7 @@ class SenseMaker:
         # Seed the RNG to get the same results.
         random.seed(5)
 
-        set_directory = 'data/vgg/set_' + str(self.args.set_number) + '/'
+        set_directory = const.data_directory + 'vgg/set_' + str(self.args.set_number) + '/'
 
         # Force the images at specific indexes to be included.
         #forced_indices = []
