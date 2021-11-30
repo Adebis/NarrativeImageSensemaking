@@ -1,6 +1,6 @@
 import json
 
-from knowledge_graph import KnowledgeGraphNode, KnowledgeGraphEdge
+from knowledge_graph import KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge
 from hypothesis import Hypothesis, Evidence
 from constants import Constants as const
 
@@ -72,7 +72,7 @@ class OutputWriter:
     #       scores (dictionary of scores)
                 
     def graph_and_hypotheses_to_json(self,
-                                     knowledge_graph_in,
+                                     kg_in,
                                      hypotheses_in,
                                      hypothesis_set_in,
                                      output_file_name):
@@ -92,7 +92,7 @@ class OutputWriter:
         # Make the scene graph and the concept set.
         scene_graph_entries = list()
         concept_set_entries = list()
-        for node_id, node in knowledge_graph_in.items():
+        for node_id, node in kg_in.nodes.items():
             new_node_entry = self.make_node_json_entry(node)
             # Place them in different entry sets based on
             # whether they are a concept node or not.

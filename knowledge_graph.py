@@ -10,7 +10,8 @@ class KnowledgeGraph:
         self.nodes = dict()
     # end __init__
 
-    
+    def get_nodes(self):
+        return self.nodes
 
 # end class KnowledgeGraph
 

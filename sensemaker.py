@@ -13,7 +13,7 @@ from collections import deque
 
 import xml.etree.ElementTree as ET
 
-from knowledge_graph import KnowledgeGraphNode, KnowledgeGraphEdge, NodeFactory
+from knowledge_graph import KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, NodeFactory
 from hypothesis import Hypothesis, Evidence
 from hypothesis_generator import HypothesisGenerator
 from hypothesis_evaluator import HypothesisEvaluator
@@ -47,7 +47,7 @@ class SenseMaker:
 
     # A knowledge graph built from scene triplets.
     # The ID of each node is its key in this dictionary.
-    knowledge_graph = dict()
+    knowledge_graph = None
 
     # Whether to print dense logs
     verbose = False
@@ -119,7 +119,7 @@ class SenseMaker:
         #    this number.
         predicate_limit = 1
 
-        self.knowledge_graph = dict()
+        self.knowledge_graph = KnowledgeGraph()
 
         # Load in the list of interpersonal relationships.
         #ip_rel_path = data_directory + 'interpersonal_relationships.json'
@@ -180,16 +180,16 @@ class SenseMaker:
 
     # Generate hypotheses for relationships between nodes in the knowledge graph.
     # Returns the list of hypotheses.
-    def generate_hypotheses(self, knowledge_graph_in):
+    def generate_hypotheses(self, kg_in):
         print("Generating hypotheses")
         all_hypotheses = list()
 
         # Generate hypotheses from commonsense knowledge networks
-        kn_hypotheses = self.hypotheses_from_knowledge_networks(knowledge_graph_in)
+        kn_hypotheses = self.hypotheses_from_knowledge_networks(kg_in)
         all_hypotheses.extend(kn_hypotheses)
 
         # Generate hypotheses from commonsense reasoning datasets
-        #rdb_hypotheses = self.hypotheses_from_reasoning_datasets(knowledge_graph_in)
+        #rdb_hypotheses = self.hypotheses_from_reasoning_datasets(kg_in)
         #all_hypotheses.extend(rdb_hypotheses)
 
         return all_hypotheses
@@ -198,7 +198,7 @@ class SenseMaker:
     # Generate hypotheses from commonsense knowledge networks,
     # like ConceptNet, WordNet, and VerbNet.
     # Returns the hypotheses
-    def hypotheses_from_knowledge_networks(self, knowledge_graph_in):
+    def hypotheses_from_knowledge_networks(self, kg_in):
         print("Generating hypotheses from knowledge networks")
         print("From concept net")
 
@@ -208,7 +208,7 @@ class SenseMaker:
         # 'is_concept' edge to a node representing the node's concept in
         # ConceptNet. These nodes will themselves have edges
         # connecting them with each other adjacent concept's nodes.
-        self.populate_concepts(knowledge_graph_in)
+        self.populate_concepts(kg_in)
 
         # A list of hypotheses inferred from knowledge networks.
         hypotheses = list()
@@ -216,26 +216,26 @@ class SenseMaker:
         hypothesis_generator = HypothesisGenerator(self.args)
 
         # Generate Referential relationship hypotheses
-        referential_hypotheses = hypothesis_generator.generate_referential_hypotheses(knowledge_graph_in)
+        referential_hypotheses = hypothesis_generator.generate_referential_hypotheses(kg_in)
         hypotheses.extend(referential_hypotheses)
 
         # We now have scene graph nodes with 'is' relationships
         # to other scene graph nodes.
 
         # Generate Causal relationship hypotheses
-        causal_hypotheses = hypothesis_generator.generate_causal_hypotheses(knowledge_graph_in, hypotheses)
+        causal_hypotheses = hypothesis_generator.generate_causal_hypotheses(kg_in, hypotheses)
         hypotheses.extend(causal_hypotheses)
 
         # Generate Affective relationship hypotheses
-        affective_hypotheses = hypothesis_generator.generate_affective_hypotheses(knowledge_graph_in,
+        affective_hypotheses = hypothesis_generator.generate_affective_hypotheses(kg_in,
                                                                                   hypotheses)
         hypotheses.extend(affective_hypotheses)
 
-        causal_from_affective = hypothesis_generator.causal_hypotheses_from_affective(knowledge_graph_in,
+        causal_from_affective = hypothesis_generator.causal_hypotheses_from_affective(kg_in,
                                                                                       hypotheses)
         hypotheses.extend(causal_from_affective)
 
-        temporal_hypotheses = hypothesis_generator.generate_temporal_hypotheses(knowledge_graph_in,
+        temporal_hypotheses = hypothesis_generator.generate_temporal_hypotheses(kg_in,
                                                                                 hypotheses)
         hypotheses.extend(temporal_hypotheses)
 
@@ -252,14 +252,14 @@ class SenseMaker:
     # Get ConceptNet concepts, their related predicates, and any
     # ConceptNet nodes in a concept's neighborhood for the
     # nodes in the scene graph.
-    def populate_concepts(self, knowledge_graph_in):
+    def populate_concepts(self, kg_in):
         # Keep a dictionary of nodes for concepts from ConceptNet,
         # keyed by the concept's name.
         cn_concept_nodes = dict()
         
         # For each scene graph node, get its corresponding
         # ConceptNet node and related predicates.
-        for node_id, kg_node in knowledge_graph_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             # Skip any node that is not a scene graph node.
             if not (kg_node.node_type == 'object'
                     or kg_node.node_type == 'predicate'
@@ -387,7 +387,7 @@ class SenseMaker:
 
         # Add the concept nodes to the knowledge graph.
         for concept_name, concept_node in cn_concept_nodes.items():
-            knowledge_graph_in[concept_node.node_id] = concept_node
+            kg_in.nodes[concept_node.node_id] = concept_node
 
         return
     # end populate_concepts
@@ -430,7 +430,7 @@ class SenseMaker:
 
     # ======= START HYPOTHESIS EVALUATION AND HELPER FUNCTIONS ======
 
-    def evaluate_hypotheses(self, knowledge_graph_in, hypotheses_in):
+    def evaluate_hypotheses(self, kg_in, hypotheses_in):
         # Make a hypothesis evaluator
         hypothesis_evaluator = HypothesisEvaluator(self.args)
         
@@ -472,7 +472,7 @@ class SenseMaker:
         output_file_name = 'initial_filter_output' + '.json'
 
         output_writer = OutputWriter(self.args)
-        output_writer.graph_and_hypotheses_to_json(knowledge_graph_in,
+        output_writer.graph_and_hypotheses_to_json(kg_in,
                                                    hypotheses_in,
                                                    None,
                                                    output_file_name)
@@ -484,10 +484,11 @@ class SenseMaker:
         scored_sets = dict()
 
         if self.args.generate_all_sets:
-            scored_sets = hypothesis_evaluator.generate_all_sets(knowledge_graph_in,
-                                                                 hypotheses_in)
+            #scored_sets = hypothesis_evaluator.generate_all_sets(kg_in,
+            #                                                     hypotheses_in)
+            print("Generating all sets not implemented :)")
         else:
-            scored_sets = hypothesis_evaluator.multi_objective_optimization(knowledge_graph_in,
+            scored_sets = hypothesis_evaluator.multi_objective_optimization(kg_in,
                                                                             hypotheses_in)
         # Instead of passing in acceptable_hypothese, passing in ALL hypotheses
         
@@ -524,9 +525,9 @@ class SenseMaker:
     # concept name.
     # Return a list of KnowledgeGraphNodes of all instances.
     # Returns empty list if there are none.
-    def search_kg_for_all_nodes(self, knowledge_graph_in, concept_name):
+    def search_kg_for_all_nodes(self, kg_in, concept_name):
         nodes_to_return = list()
-        for node_id, kg_node in knowledge_graph_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             # Check if the concept name matches.
             # If so, add this node to the list of nodes to return.
             if kg_node.concept_name == concept_name:
@@ -539,9 +540,9 @@ class SenseMaker:
     # concept name and image id.
     # If it exists, return it.
     # If not, return None.
-    def search_kg_for_node(self, knowledge_graph_in, concept_name, image_id):
+    def search_kg_for_node(self, kg_in, concept_name, image_id):
         node_to_return = None
-        for node_id, kg_node in knowledge_graph_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             # Check if the concept name and image ID match.
             # If so, stop searching and set this as the node to return.
             if kg_node.concept_name == concept_name and kg_node.image_id == image_id:
@@ -557,7 +558,7 @@ class SenseMaker:
     # If not, return None.
     def search_kg_for_node(self, kg_in, node_id_in):
         node_to_return = None
-        for node_id, kg_node in kg_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             if node_id == node_id_in:
                 node_to_return = kg_node
                 break
@@ -580,7 +581,7 @@ class SenseMaker:
         objects_per_scene_graph = dict()
         preds_per_scene_graph = dict()
 
-        for node_id, kg_node in kg_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             if kg_node.image_id in self.image_id_to_index:
                 image_index = int(self.image_id_to_index[kg_node.image_id])
             else:
@@ -624,7 +625,7 @@ class SenseMaker:
         # The value is the number of those relationships 
         cn_predicates_by_type = dict()
         # Go through each KG node's cn predicates
-        for node_id, kg_node in kg_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             for predicate in kg_node.cn_predicates:
                 # Increase the count for its relationship
                 if not predicate["relationship"] in cn_predicates_by_type:

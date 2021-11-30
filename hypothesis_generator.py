@@ -1,6 +1,6 @@
 from collections import deque
 
-from knowledge_graph import KnowledgeGraphNode, KnowledgeGraphEdge
+from knowledge_graph import KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge
 from hypothesis import Hypothesis, Evidence
 from constants import Constants as const
 
@@ -81,7 +81,7 @@ class HypothesisGenerator:
         # scene graph nodes which share a the target edge relationship
         # with the same node of the target shared node type.
         # Only do so with Object nodes (node_type == "object")
-        for node_id, kg_node in kg_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             # Skip this node if it is not an object.
             if not kg_node.node_type == "object":
                 continue
@@ -93,7 +93,7 @@ class HypothesisGenerator:
                     and edge.target_node.node_type == 'concept'):
                     is_target_nodes.append(edge.target_node)
             # Check each other knowledge graph node.
-            for node_id_2, kg_node_2 in kg_in.items():
+            for node_id_2, kg_node_2 in kg_in.nodes.items():
                 # Do not let the node form a relationship with itself.
                 if node_id_2 == node_id:
                     continue
@@ -152,8 +152,8 @@ class HypothesisGenerator:
                         
                         break
                 # end for concept_node in is_concept_nodes
-            # end for node_id_2, kg_node_2 in knowledge_graph_in.items()
-        # end for node_id, kg_node in knowledge_graph_in.items()
+            # end for node_id_2, kg_node_2 in kg_in.items()
+        # end for node_id, kg_node in kg_in.items()
 
         return hypotheses
 
@@ -174,7 +174,7 @@ class HypothesisGenerator:
         hypotheses_to_add = list()
         
         # Go through each scene graph node that is an object.
-        for node_id, kg_node in kg_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             # Skip this node if it is not an object.
             if not kg_node.node_type == "object":
                 continue
@@ -286,7 +286,7 @@ class HypothesisGenerator:
     # end referential_hypothesis_second_pass
 
     # Generate Causal hypotheses.
-    def generate_causal_hypotheses(self, knowledge_graph_in, hypotheses_in):
+    def generate_causal_hypotheses(self, kg_in, hypotheses_in):
         hypotheses = list()
 
         # Hypothesize SEQUENCE relationships between two events.
@@ -301,7 +301,7 @@ class HypothesisGenerator:
         # involve the same objects. 
 
         # Go through each action node.
-        for node_id_1, kg_node_1 in knowledge_graph_in.items():
+        for node_id_1, kg_node_1 in kg_in.nodes.items():
             # Skip anything that's not an action node.
             if not kg_node_1.node_type == "action":
                 continue
@@ -311,7 +311,7 @@ class HypothesisGenerator:
             involved_nodes_1 = self.get_involved_object_nodes(kg_node_1)
 
             # Go through each other action node.
-            for node_id_2, kg_node_2 in knowledge_graph_in.items():
+            for node_id_2, kg_node_2 in kg_in.nodes.items():
                 # Don't compare a node to itself
                 if node_id_1 == node_id_2:
                     continue
@@ -388,7 +388,7 @@ class HypothesisGenerator:
                 # Don't look if the concepts are the same.
                 if not kg_node_1.cn_concept_name == kg_node_2.cn_concept_name:
                     # Look for a concept path from one node to the other. 
-                    concept_path = self.get_scene_graph_concept_path(knowledge_graph_in,
+                    concept_path = self.get_scene_graph_concept_path(kg_in,
                                                                      kg_node_1,
                                                                      kg_node_2,
                                                                      const.causal_filter,
@@ -412,7 +412,7 @@ class HypothesisGenerator:
     # end generate_causal_hypotheses
 
     # Generate Affective hypotheses.
-    def generate_affective_hypotheses(self, knowledge_graph_in, hypotheses_in):
+    def generate_affective_hypotheses(self, kg_in, hypotheses_in):
         affective_hypotheses = list()
 
         # Should be called after first set of causal hypotheses have been generated.
@@ -423,7 +423,7 @@ class HypothesisGenerator:
         # in constants).
         # 3. ALSO go to each action hypothesized to be in the same sequence
         # and do the same.
-        for node_id, kg_node in knowledge_graph_in.items():
+        for node_id, kg_node in kg_in.nodes.items():
             # Skip anything that isn't an object.
             if not kg_node.node_type == 'object':
                 continue
@@ -512,7 +512,7 @@ class HypothesisGenerator:
                     self.add_hypothesis_to_set(new_hypothesis, affective_hypotheses)
             # end for
 
-        # end for node_id, kg_node in knowledge_graph_in
+        # end for node_id, kg_node in kg_in
 
         return affective_hypotheses
     # end generate_affective_hypotheses
@@ -597,7 +597,7 @@ class HypothesisGenerator:
                     new_hypothesis.subtext = 'Desires'
                 else:
                     new_hypothesis.subtext = 'FulfillsDesireOf'
-            elif affeictive_edge.relationship == 'ObstructedBy':
+            elif affective_edge.relationship == 'ObstructedBy':
                 if outgoing_from_action:
                     new_hypothesis.subtext = 'ObstructedBy'
                 else:
@@ -635,7 +635,7 @@ class HypothesisGenerator:
     # generated.
     # NOTE: Not currently being used. 
     def causal_hypotheses_from_affective(self,
-                                         knowledge_graph_in,
+                                         kg_in,
                                          hypotheses_in):
 
         #print("Causal from affective")
@@ -649,7 +649,7 @@ class HypothesisGenerator:
             affective_concept = hypothesis.target_node
             #print("Affective concept: " + affective_concept.node_name)
             # Go through all of the scene graph's action nodes.
-            for node_id, kg_node in knowledge_graph_in.items():
+            for node_id, kg_node in kg_in.nodes.items():
                 if not kg_node.node_type == 'action':
                     continue
                 # Check it against the action node in the hypothesis'
@@ -699,7 +699,7 @@ class HypothesisGenerator:
 
     # Generate hypotheses about the temporal ordering of things.
     def generate_temporal_hypotheses(self,
-                                     knowledge_graph_in,
+                                     kg_in,
                                      hypotheses_in):
         hypotheses = list()
 
