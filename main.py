@@ -20,7 +20,7 @@ def main():
     # 3 means there is exactly one intervening ConceptNet
     # node in the path.
     parser.add_argument('--causal_length', default=3)
-    # Whether or not edges should be restricted to causal edges.
+    # Whether or not edges should be restricted to causal edges. 
     parser.add_argument('--causal_type', default=False)
     # Whether we should generate all sets or just
     # the optimal one while doing hypothesis

@@ -940,21 +940,21 @@ def main():
     # Passing them in as 'concept' should automatically
     # fetch their embeddings for them in node_factory. 
     kg = dict()
-    node_1 = node_factory.make_kg_node('dog',
+    node_1 = node_factory.make_node('dog',
                                        'dog_h',
                                        'concept',
                                        -1,
                                        1,
                                        None,
                                        True)
-    node_2 = node_factory.make_kg_node('frisbee',
+    node_2 = node_factory.make_node('frisbee',
                                        'frisbee_h',
                                        'concept',
                                        -1,
                                        1,
                                        None,
                                        True)
-    node_3 = node_factory.make_kg_node('play',
+    node_3 = node_factory.make_node('play',
                                        'bike_h',
                                        'concept',
                                        -1,

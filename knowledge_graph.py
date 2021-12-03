@@ -1,3 +1,5 @@
+from scipy import spatial
+
 from external_knowledge_querier import ExternalKnowledgeQuerier
 
 # A class representing the system's knowledge graph. 
@@ -6,14 +8,179 @@ class KnowledgeGraph:
     # keyed by node ID.
     nodes = dict()
 
+    # An adjacency matrix for the nodes in the graph, counting
+    # only the edges from the scene graph.
+    # Dict of dicts, with each dictionary keyed by
+    # the node's ID. 
+    adjacency_matrix_sg = dict()
+    # An adjacency matrix for the nodes in the graph
+    # counting the contribution of a hypothesis set.
+    adjacency_matrix_h = dict()
+
+    # The knowledge graph's node factory,
+    # for creating nodes. 
+    node_factory = None
+
     def __init__(self):
         self.nodes = dict()
+        self.adjacency_matrix_sg = dict()
+        self.adjacency_matrix_h = dict()
+        self.node_factory = NodeFactory()
     # end __init__
 
-    def get_nodes(self):
-        return self.nodes
+    # Add a scene graph node to the knowledge graph. 
+    # Returns True if the node was successfully added,
+    # False otherwise.
+    def add_sg_node(self, node_in):
+        # Don't add duplicate nodes.
+        if node_in.node_id in self.nodes:
+            return False
+        # Populate the node's scene graph adjacency matrix.
+        # Add 0-value entries to every node's adjacency list
+        # for the new node in the scene graph adjacency matrix.
+        # At the same time, make an adjacency list for the new node 
+        # and make 0-value entries for every other existing node.
+        new_node_id = node_in.node_id
+        self.adjacency_matrix_sg[new_node_id] = dict()
+        for node_id, node in self.nodes.items():
+            self.adjacency_matrix_sg[node_id][new_node_id] = 0
+            self.adjacency_matrix_sg[new_node_id][node_id] = 0
+        # end for
+
+        # Add the node to the nodes dictionary.
+        self.nodes[node_in.node_id] = node_in
+
+        # Make adjacency score entries for the new node based 
+        # on the node's incoming and outgoing edges. 
+        # Check both outgoing and incoming edges.
+        # Outgoing edges.
+        for edge in node_in.edges:
+            # Get the node this edge is leading to. 
+            target_node = edge.target_node
+            # Mark both as adjacent to the other.
+            self.mark_adjacency(node_in, target_node, self.adjacency_matrix_sg, 1)
+        # end for
+        # Incoming edges.
+        for edge in node_in.edges_in:
+            source_node = edge.source_node
+            self.mark_adjacency(node_in, source_node, self.adjacency_matrix_sg, 1)
+        # end for
+        # Now, all nodes that are adjacent to each other in the knowledge
+        # graph have a 1 in their adjacency matrix and all the ones that
+        # don't have a 0 in their adjacency matrix. 
+    # end add_node
+
+    # Mark two nodes as adjacent in the given
+    # adjacency matrix with the given adjacency score.
+    # Will override any existing adjacency score. 
+    def mark_adjacency(self, node_1, node_2, adj_matrix, adj_score):
+        # If either node does not have an adjacency list initialized,
+        # initialize one now. 
+        if not node_1.node_id in adj_matrix:
+            adj_matrix[node_1.node_id] = dict()
+        if not node_2.node_id in adj_matrix:
+            adj_matrix[node_2.node_id] = dict()
+        # Set each nodes' adjacency score with the other in both
+        # of their entries.
+        adj_matrix[node_1.node_id][node_2.node_id] = adj_score
+        adj_matrix[node_2.node_id][node_1.node_id] = adj_score
+    # end mark_adjaceny
+
+    # Check if two nodes are adjacent in the given adjacency matrix.
+    # Returns 0 if they are not, their score if they are.
+    def adjacency(self, node_1, node_2, adj_matrix):
+        # Check if the nodes are in the matrix at all. If not, 
+        # return false.
+        if not node_1.node_id in adj_matrix:
+            return 0
+        if not node_2.node_id in adj_matrix:
+            return 0
+        # end if
+        # The adjacency lists should be symmetric, but check both
+        # anyway just in case.
+        if not node_2.node_id in adj_matrix[node_1.node_id]:
+            return 0
+        if not node_1.node_id in adj_matrix[node_2.node_id]:
+            return 0
+        return adj_matrix[node_1.node_id][node_2.node_id]
+    # end adjaceny
+
+    # Add an adjacency score to two nodes in the given adjacency matrix.
+    # If they are not already adjacent, will instead mark them
+    # as adjacent with the given score.
+    # If they are already adjacent, will add the given score
+    # to their existing adjacency scores.
+    def add_adjacency(self, node_1, node_2, adj_matrix, adj_score):
+        adjacency = self.adjacency(node_1, node_2, adj_matrix)
+        self.mark_adjacency(node_1, node_2, adj_matrix, adjacency + adj_score)
+    # end add_adjacency
+
+    # Populate the hypothesis adjacency matrix, which adds hypothesis
+    # scores to the scene graph adjacency matrix according to a
+    # given set of hypotheses. 
+    def update_adjacency_matrix_h(self, hypotheses):
+        # Reset the adjacency matrix. 
+        self.adjacency_matrix_h = dict()
+        # Deep copy scene graph adjacency matrix. 
+        for node_id_1, adjacency_list in self.adjacency_matrix_sg.items():
+            self.adjacency_matrix_h[node_id_1] = dict()
+            for node_id_2, adjacency_score in adjacency_list.items():
+                self.adjacency_matrix_h[node_id_1][node_id_2] = adjacency_score
+            # end for
+        # end for
+        # Go through each valid hypothesis, find what two scene graph nodes
+        # they are between, and add the hypothesis' score to the adjacency
+        # score of the nodes. 
+        for hypothesis in hypotheses:
+            # Skip hypotheses that are not valid.
+            if not hypothesis.is_valid():
+                continue
+            # Get the nodes this hypothesis connects.
+            source_node = hypothesis.source_node
+            target_node = hypothesis.target_node
+            # If either are not a Node, then this hypothesis
+            # cannot be used to inform the adjacency matrix.
+            if (not isinstance(source_node, KnowledgeGraphNode) 
+                or not isinstance(target_node, KnowledgeGraphNode)):
+                continue
+            # Add the hypothesis' evidence score to the adjacency score
+            # between the two nodes it connects. 
+            evidence_score = hypothesis.evidence_score
+            self.add_adjacency(source_node, 
+                               target_node, 
+                               self.adjacency_matrix_h, 
+                               evidence_score)
+        # end for
+    # end update_adjacency_matrix_h
+
+    # Takes two node IDs and a set of hypotheses. Returns how 
+    # similar the two nodes are based on their context in this 
+    # knowledge graph, taking into account the (valid) hypotheses.
+    # Does not check for hypothesis validity itself, but uses the
+    # hypothesis' validity flag.  
+    # Returns similarity as a float between 0 and 1, with 0
+    # being completely disimilar and 1 being the exact same node. 
+    def similarity(self, node_id_1, node_id_2, hypotheses):
+        # First, make an updated adjacency matrix from the base
+        # scene graph adjacency matrix, taking the new hypotheses
+        # into account. 
+        self.update_adjacency_matrix_h(hypotheses)
+
+        # Get the cosine similarity between the two nodes
+        # Get each node's adjacency list. 
+        adj_list_1 = list(self.adjacency_matrix_h[node_id_1].values())
+        adj_list_2 = list(self.adjacency_matrix_h[node_id_2].values())
+        # Use scipy's cosine distance function. 
+        cosine_distance = 1 - spatial.distance.cosine(adj_list_1, adj_list_2)
+
+        similarity = cosine_distance
+        return similarity
+    # end relatedness
+    
 
 # end class KnowledgeGraph
+
+
 
 # A class representing a single node in the knowledge graph.
 class KnowledgeGraphNode:
@@ -482,7 +649,6 @@ class KnowledgeGraphEdge:
     # end __str__
 # end KnowledgeGraphEdge
 
-
 # A class defining an factory object that can
 # create KnowledgeGraphNodes
 class NodeFactory:
@@ -500,14 +666,14 @@ class NodeFactory:
 
     # Make a knowledge graph node.
     # Returns the new node.
-    def make_kg_node(self,
-                     concept_name_in,
-                     node_name_in,
-                     node_type_in,
-                     image_id_in,
-                     score_in,
-                     bounding_box_in,
-                     graph_membership_in):
+    def make_node(self,
+                  concept_name_in,
+                  node_name_in,
+                  node_type_in,
+                  image_id_in,
+                  score_in,
+                  bounding_box_in,
+                  graph_membership_in):
         # kg nodes initialize with:
         #   concept name (not it's ConceptNet concept's name)
         #   id number
@@ -543,7 +709,7 @@ class NodeFactory:
         new_node.embedding = embedding
         # Return the node we just made. 
         return new_node
-    # end make_kg_node
+    # end make_node
 
 # end class NodeFactory
 

@@ -296,7 +296,7 @@ class SenseMaker:
                 # Name, node type, image id, score, bounding box.
                 # Most of these are none, since this the node for a concept
                 # and not something from the scene graph. 
-                concept_node = self.node_factory.make_kg_node(clean_name,
+                concept_node = self.node_factory.make_node(clean_name,
                                                               clean_name + '_h',
                                                               'concept',
                                                               -1,
@@ -328,7 +328,7 @@ class SenseMaker:
                     nm_concept_node = cn_concept_nodes[nm_concept_name]
                 else:
                     # Make a node for the concept.
-                    nm_concept_node = self.node_factory.make_kg_node(nm_concept_name,
+                    nm_concept_node = self.node_factory.make_node(nm_concept_name,
                                                                      nm_concept_name + '_h',
                                                                      'concept',
                                                                      -1,

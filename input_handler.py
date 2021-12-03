@@ -42,7 +42,12 @@ class InputReader:
             scene_graph = self.read_scene_graph_json(image_index,
                                                      image_id,
                                                      set_directory)
-            kg.nodes.update(scene_graph)
+            # Go through each scene graph node and add it
+            # to the knowledge graph object. 
+            for node_id, node in scene_graph.items():
+                # Add the node to the knowledge graph object.
+                kg.add_sg_node(node)
+            #kg.nodes.update(scene_graph)
         # end for
 
         return kg
@@ -163,7 +168,7 @@ class InputReader:
                 node_name = (object_name + "_" + str(image_index) +
                              "_" + str(self.node_factory.node_id_counter + 1))
                 # Make the knowledge graph node itself.
-                new_kg_node = self.node_factory.make_kg_node(object_name,
+                new_kg_node = self.node_factory.make_node(object_name,
                                                              node_name,
                                                              'object',
                                                              image_id,
@@ -206,7 +211,7 @@ class InputReader:
                         node_name = (concept_name + "_" +
                                      str(image_index) + "_" +
                                      str(self.node_factory.node_id_counter + 1))
-                        new_node = self.node_factory.make_kg_node(attribute_entry.lower(),
+                        new_node = self.node_factory.make_node(attribute_entry.lower(),
                                                                   node_name,
                                                                   'action',
                                                                   image_id,
@@ -317,7 +322,7 @@ class InputReader:
                 else:
                     node_type = 'predicate'
                 # end if else
-                new_node = self.node_factory.make_kg_node(relationship_name,
+                new_node = self.node_factory.make_node(relationship_name,
                                                           node_name,
                                                           node_type,
                                                           image_id,
