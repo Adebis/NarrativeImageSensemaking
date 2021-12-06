@@ -44,7 +44,7 @@ class HypothesisEvaluator:
         
         # A list of the hypotheses with no contradictions.
         always_acceptable_hypotheses = list()
-        # A list of hypotheses that have at least one contradiction each.
+        # A list of hypotheses that have at least one contradiction each. 
         contradicting_hypotheses = list()
         # Sort each hypothesis based on whether or not they
         # contradict with at least one other hypothesis. 
@@ -89,7 +89,7 @@ class HypothesisEvaluator:
         for hypothesis in contradicting_hypotheses:
             # Because weights must be integers, we multiply each
             # score by 1000 and round. 
-            int_score = round(h_score_by_id[hypothesis.hypothesis_id])
+            int_score = round(1000 * h_score_by_id[hypothesis.hypothesis_id])
             nx_graph.add_node(hypothesis.hypothesis_id,
                               weight = int_score)
         # end for
